@@ -1,16 +1,40 @@
+from datetime import date
+from os import environ
+
 import pika as pika
+from dotenv import load_dotenv
 
-# producer
-# declaring the credentials needed for connection like host, port, userme, password, exchange etc
-credentials = pika.PlainCredentials('guest', 'guest')
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', credentials=credentials))
-channel = connection.channel()
-channel.exchange_declare('test_exchange', durable=True, exchange_type='topic')
-channel.queue_declare(queue='ness_qa_queue')
-channel.queue_bind(exchange='test_exchange', queue='ness_qa_queue', routing_key='ness_qa_queue')
 
-# messaging to queue named C
-message = b'{"Author": "Reut Koh 3","Date": "2022-12-19","Severity": "5","Status": "New"}'
+def publish_message_to_rabbitmq(username: str, password: str, index_name: str, exchange: str, doc: bytes):
+    """
+    Function to connect user to RabbitMQ
+    :param username: User's username
+    :param password: User's password
+    :param index_name: User's elasticsearch index name
+    :param exchange: The exchange which sends the message
+    :param doc: The message that been sends to the queue
+    :return: None
+    """
+    credentials = pika.PlainCredentials(username, password)
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', credentials=credentials))
+    channel = connection.channel()
+    channel.exchange_declare(exchange, durable=True, exchange_type='topic')
+    channel.queue_declare(queue=index_name)
+    channel.queue_bind(exchange=exchange, queue=index_name, routing_key=index_name)
+    channel.basic_publish(exchange=exchange, routing_key=index_name, body=doc)
+    channel.close()
 
-channel.basic_publish(exchange='test_exchange', routing_key='ness_qa_queue', body=message)
-channel.close()
+
+def main():
+    load_dotenv()
+    username = environ['RABBITMQ_USERNAME']
+    password = environ['RABBITMQ_PASSWORD']
+    exchange = environ['RABBITMQ_EXCHANGE']
+    index_name = environ['ELASTIC_INDEX']
+    doc = b'{"Author": "Tester 22", "Date": "%b", "Severity": "3", "Status": "New"}' % str(date.today()).encode()
+    publish_message_to_rabbitmq(username, password, index_name, exchange, doc)
+    print("Message been sent!")
+
+
+if __name__ == '__main__':
+    main()
