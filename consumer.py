@@ -9,7 +9,7 @@ from elasticsearch import Elasticsearch
 
 def rabbitmq_to_elastic(password: str, username: str, port: int, index_name: str, host_name: str) -> None:
     """
-    Function to establish connection between elasticsearch and rabbitmq, will send the RabbitMQ message to elasticsearch
+    Function to establish connection between Elasticsearch and RabbitMQ, will send the RabbitMQ message to Elasticsearch
     index
     :param password: User's password
     :param username: User's username
@@ -19,12 +19,18 @@ def rabbitmq_to_elastic(password: str, username: str, port: int, index_name: str
     :return: None
     """
 
+    # Create connection channel to RabbitMQ
     channel = connect_to_rabbitmq(host_name, index_name)
 
+    # Whenever we receive a message, the callback function is called
     def callback(ch, method, properties, body):
-        print(f"Received this message: {body}")
-        send_message_to_elastic(port, username, password, body, index_name, host_name)
+        print(f"Received message: {body}")
 
+        # Trasport the message that the RabbitMQ received to Elasticsearch
+        send_message_to_elastic(port=port, username=username, password=password, doc=body, index_name=index_name,
+                                host_name=host_name)
+
+    # Tell RabbitMQ that our particular callback function should receive messages from our queue
     channel.basic_consume(queue=index_name, on_message_callback=callback, auto_ack=True)
 
     print('Waiting for messages from RabbitMQ. To exit press CTRL+C')
@@ -43,6 +49,7 @@ def send_message_to_elastic(port: int, username: str, password: str, doc: [str, 
     :param host_name: User's host name
     :return: None
     """
+
     # Create an Elasticsearch client with authentication
     client = Elasticsearch(hosts=[f"http://{host_name}:{port}"], basic_auth=(username, password))
 
@@ -65,9 +72,9 @@ def connect_to_rabbitmq(host_name: str, index_name: str):
 
 def main():
     load_dotenv()
-    rabbitmq_to_elastic(environ['ELASTIC_PASSWORD'], environ['ELASTIC_USERNAME'],
-                        int(environ['ELASTIC_PORT']), environ['ELASTIC_INDEX'],
-                        environ['ELASTIC_HOST_NAME'])
+    rabbitmq_to_elastic(password=environ['ELASTIC_PASSWORD'], username=environ['ELASTIC_USERNAME'],
+                        port=environ['ELASTIC_PORT'], index_name=environ['ELASTIC_INDEX'],
+                        host_name=environ['ELASTIC_HOST_NAME'])
 
 
 if __name__ == '__main__':
