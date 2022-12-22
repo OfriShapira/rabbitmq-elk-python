@@ -26,6 +26,7 @@ def publish_message_to_rabbitmq(username: str, password: str, index_name: str, e
     channel.queue_bind(exchange=exchange, queue=index_name, routing_key=index_name)
     channel.basic_publish(exchange=exchange, routing_key=index_name, body=doc)
     channel.close()
+    print("Message been sent!")
 
 
 def main():
@@ -35,11 +36,12 @@ def main():
     password = environ['RABBITMQ_PASSWORD']
     exchange = environ['RABBITMQ_EXCHANGE']
     index_name = environ['ELASTIC_INDEX']
-    body = b'{"Author": "Tester 22", "Date": "%b", "Severity": "3", "Status": "New"}' % str(date.today()).encode()
+
+    # Declaring the message body according to the index data types and scheme
+    body = b'{"Author": "Example Author", "Date": "%b", "Severity": "5", "Status": "New"}' % str(date.today()).encode()
 
     publish_message_to_rabbitmq(username=username, password=password, index_name=index_name, exchange=exchange,
                                 doc=body, hostname='localhost', exchange_type='topic')
-    print("Message been sent!")
 
 
 if __name__ == '__main__':
