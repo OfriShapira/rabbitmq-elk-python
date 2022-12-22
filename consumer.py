@@ -26,7 +26,7 @@ def rabbitmq_to_elastic(password: str, username: str, port: int, index_name: str
     def callback(ch, method, properties, body):
         print(f"Received message: {body}")
 
-        # Trasport the message that the RabbitMQ received to Elasticsearch
+        # Transport the message that the RabbitMQ received to Elasticsearch
         send_message_to_elastic(port=port, username=username, password=password, doc=body, index_name=index_name,
                                 host_name=host_name)
 
